@@ -8,5 +8,5 @@ import (
 
 type PageRepository interface {
 	Save(ctx context.Context, page *model.Page) error
-	Search(ctx context.Context, query string) ([]model.Page, error)
+	Search(ctx context.Context, query string) ([]*model.Page, error)
 }

@@ -1,63 +1,63 @@
 package handler
 
 import (
-	"net/http"
-
-	"github.com/Khalilkma/search-engine-golang/internal/model"
 	"github.com/Khalilkma/search-engine-golang/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 type PageHandler struct {
-	service *service.PageService
+	Service *service.PageService
 }
 
-func NewPageHandler(service *service.PageService) *PageHandler {
-	return &PageHandler{service: service}
+func NewPageHandler(svc *service.PageService) *PageHandler {
+	return &PageHandler{Service: svc}
 }
 
-// POST /pages
-func (h *PageHandler) Create(c *gin.Context) {
-	var page model.Page
+func (h *PageHandler) Crawl(c *gin.Context) {
 
-	if err := c.ShouldBindJSON(&page); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	type CrawlRequest struct {
+		URL   string `json:"url"`
+		Depth int    `json:"depth"`
+	}
+
+	var req CrawlRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	err := h.service.Create(c.Request.Context(), &page)
+	if req.URL == "" {
+		c.JSON(400, gin.H{"error": "url is required"})
+		return
+	}
+
+	if req.Depth <= 0 {
+		req.Depth = 1
+	}
+
+	pages, err := h.Service.CrawlAndSave(c.Request.Context(), req.URL, req.Depth)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "page created successfully",
-	})
+	c.JSON(200, pages)
 }
 
-// GET /search?q=algo
 func (h *PageHandler) Search(c *gin.Context) {
+
 	query := c.Query("q")
-
 	if query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "query parameter 'q' is required",
-		})
+		c.JSON(400, gin.H{"error": "query parameter 'q' is required"})
 		return
 	}
 
-	results, err := h.service.Search(c.Request.Context(), query)
+	results, err := h.Service.Search(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, results)
+	c.JSON(200, results)
 }

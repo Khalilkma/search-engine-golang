@@ -17,35 +17,55 @@ func NewPageRepository(db *pgxpool.Pool) PageRepository {
 
 func (r *pageRepository) Save(ctx context.Context, page *model.Page) error {
 	query := `
-		INSERT INTO pages (url, title, content)
-		VALUES ($1, $2, $3)
+		INSERT INTO pages (url, title, description, headings, content)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (url) DO NOTHING
 	`
 
-	_, err := r.db.Exec(ctx, query, page.URL, page.Title, page.Content)
+	_, err := r.db.Exec(ctx, query,
+		page.URL,
+		page.Title,
+		page.Description,
+		page.Headings,
+		page.Content,
+	)
+
 	return err
 }
 
-func (r *pageRepository) Search(ctx context.Context, q string) ([]model.Page, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT id, url, title, content
-		 FROM pages
-		 WHERE content ILIKE '%' || $1 || '%'`,
-		q,
-	)
+func (r *pageRepository) Search(ctx context.Context, query string) ([]*model.Page, error) {
+
+	sql := `
+		SELECT id, url, title, description, headings, content
+		FROM pages
+		WHERE title ILIKE '%' || $1 || '%'
+		   OR description ILIKE '%' || $1 || '%'
+		   OR content ILIKE '%' || $1 || '%'
+	`
+
+	rows, err := r.db.Query(ctx, sql, query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var pages []model.Page
+	var pages []*model.Page
 
 	for rows.Next() {
 		var p model.Page
-		err := rows.Scan(&p.ID, &p.URL, &p.Title, &p.Content)
+		err := rows.Scan(
+			&p.ID,
+			&p.URL,
+			&p.Title,
+			&p.Description,
+			&p.Headings,
+			&p.Content,
+		)
 		if err != nil {
 			return nil, err
 		}
-		pages = append(pages, p)
+
+		pages = append(pages, &p)
 	}
 
 	return pages, nil

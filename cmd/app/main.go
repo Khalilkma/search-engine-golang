@@ -15,7 +15,7 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("⚠️ .env não encontrado")
+		log.Println(" .env não encontrado")
 	}
 
 	db, err := database.Connect()
@@ -24,7 +24,7 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("✅ Conectado ao banco")
+	log.Println("Conectado ao banco")
 
 	// Injeção de dependência
 	pageRepo := repository.NewPageRepository(db)
@@ -38,8 +38,10 @@ func main() {
 	})
 
 	// Rotas
-	r.POST("/pages", pageHandler.Create)
 	r.GET("/search", pageHandler.Search)
+
+	// Rotas crawl
+	r.POST("/crawl", pageHandler.Crawl)
 
 	port := os.Getenv("PORT")
 	if port == "" {
