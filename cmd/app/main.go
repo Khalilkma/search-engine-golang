@@ -15,18 +15,18 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println(" .env não encontrado")
+		log.Println(" .env file not found")
 	}
 
 	db, err := database.Connect()
 	if err != nil {
-		log.Fatal("Erro ao conectar no banco:", err)
+		log.Fatal("Error connecting to database:", err)
 	}
 	defer db.Close()
 
-	log.Println("Conectado ao banco")
+	log.Println("Connected to database")
 
-	// Injeção de dependência
+	// Dependency injection
 	pageRepo := repository.NewPageRepository(db)
 	pageService := service.NewPageService(pageRepo)
 	pageHandler := handler.NewPageHandler(pageService)
@@ -37,10 +37,10 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Rotas
+	// Routes
 	r.GET("/search", pageHandler.Search)
 
-	// Rotas crawl
+	// Crawl routes
 	r.POST("/crawl", pageHandler.Crawl)
 
 	port := os.Getenv("PORT")
@@ -48,6 +48,6 @@ func main() {
 		port = "3000"
 	}
 
-	log.Println("Servidor rodando na porta", port)
+	log.Println("Server running on port", port)
 	r.Run(":" + port)
 }

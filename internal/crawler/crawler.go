@@ -12,6 +12,7 @@ import (
 
 func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 	visited := make(map[string]bool)
+	seed = normalizeURL(seed)
 	queue := []string{seed}
 	var results []*model.Page
 
@@ -27,7 +28,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 	}
 
 	// BFS
-	for depth := 0; depth < maxDepth; depth++ {
+	for range maxDepth {
 
 		levelSize := len(queue)
 
@@ -37,7 +38,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				break
 			}
 
-			currentURL := queue[0]
+			currentURL := normalizeURL(queue[0])
 			queue = queue[1:]
 
 			if visited[currentURL] {
@@ -56,7 +57,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				continue
 			}
 
-			// Extrair dados
+			// Extract data
 			title := strings.TrimSpace(doc.Find("title").Text())
 
 			var description string
@@ -82,7 +83,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				Content:     content,
 			})
 
-			// Extrair links
+			// Extract links
 			doc.Find("a").Each(func(i int, s *goquery.Selection) {
 				href, exists := s.Attr("href")
 				if !exists {
@@ -98,11 +99,30 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				resolved := base.ResolveReference(link)
 
 				if resolved.Host == baseDomain {
-					queue = append(queue, resolved.String())
+					normalized := normalizeURL(resolved.String())
+					queue = append(queue, normalized)
 				}
 			})
 		}
 	}
 
 	return results, nil
+}
+
+func normalizeURL(raw string) string {
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+
+	// remove fragment (#section)
+	u.Fragment = ""
+
+	// remove final /
+	if u.Path == "/" {
+		u.Path = ""
+	}
+
+	return u.String()
 }
