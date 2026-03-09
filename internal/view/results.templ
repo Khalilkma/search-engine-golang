@@ -1,0 +1,153 @@
+package view
+
+import (
+    "github.com/Khalilkma/search-engine-golang/internal/model"
+    "fmt"
+)
+
+templ ResultsPage(query string, results []*model.Page) {
+    @Layout() {
+        <style>
+            /* Reset básico para garantir que o layout não atrapalhe */
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+                background-color: #fff;
+            }
+
+            /* Removemos as limitações da div .container do seu Layout para esta página */
+            .container {
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Header alinhado com a barra de busca */
+            .results-header {
+                display: flex;
+                align-items: center;
+                padding: 20px 30px;
+                border-bottom: 1px solid #ebebeb;
+                position: sticky;
+                top: 0;
+                background: white;
+                z-index: 10;
+            }
+
+            .header-logo {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: #4285f4;
+                text-decoration: none;
+                margin-right: 40px;
+            }
+
+            .search-bar-form {
+                flex-grow: 1;
+                max-width: 690px;
+            }
+
+            .search-input-mini {
+                width: 100%;
+                padding: 10px 20px;
+                font-size: 16px;
+                border: 1px solid #dfe1e5;
+                border-radius: 24px;
+                outline: none;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+
+            .search-input-mini:focus {
+                box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+            }
+
+            /* Listagem de resultados */
+            .results-main {
+                margin-left: 170px; /* Alinhamento clássico */
+                padding: 20px 0;
+                max-width: 650px;
+            }
+
+            .results-stats {
+                font-size: 14px;
+                color: #70757a;
+                margin-bottom: 20px;
+            }
+
+            .result-card {
+                margin-bottom: 30px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .result-card cite {
+                font-style: normal;
+                font-size: 14px;
+                color: #202124;
+                margin-bottom: 4px;
+                display: block;
+            }
+
+            .result-card a {
+                text-decoration: none;
+            }
+
+            .result-card h3 {
+                font-size: 20px;
+                color: #1a0dab;
+                font-weight: 400;
+                margin: 0;
+                padding: 0;
+            }
+
+            .result-card h3:hover {
+                text-decoration: underline;
+            }
+
+            .result-description {
+                font-size: 14px;
+                line-height: 1.6;
+                color: #4d5156;
+                margin-top: 5px;
+            }
+
+            @media (max-width: 800px) {
+                .results-main { margin-left: 20px; margin-right: 20px; }
+                .results-header { padding: 15px; }
+                .header-logo { display: none; }
+            }
+        </style>
+
+        <header class="results-header">
+            <a href="/" class="header-logo">Search Engine GO</a>
+            <form action="/search" method="GET" class="search-bar-form">
+                <input type="text" name="q" value={ query } class="search-input-mini" />
+            </form>
+        </header>
+
+        <main class="results-main">
+            <div class="results-stats">
+                Encontramos { fmt.Sprint(len(results)) } resultados para sua pesquisa.
+            </div>
+
+            for _, r := range results {
+                <article class="result-card">
+                    <cite>{ r.URL }</cite>
+                    <a href={ templ.SafeURL(r.URL) }>
+                        <h3>{ r.Title }</h3>
+                    </a>
+                    <p class="result-description">
+                        { r.Description }
+                    </p>
+                </article>
+            }
+
+            if len(results) == 0 {
+                <div class="results-stats">
+                    Nenhum resultado encontrado. Tente termos diferentes.
+                </div>
+            }
+        </main>
+    }
+}

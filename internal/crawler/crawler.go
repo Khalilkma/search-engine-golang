@@ -12,8 +12,12 @@ import (
 
 func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 	visited := make(map[string]bool)
+	queued := make(map[string]bool)
+
 	seed = normalizeURL(seed)
 	queue := []string{seed}
+	queued[seed] = true
+
 	var results []*model.Page
 
 	parsedSeed, err := url.Parse(seed)
@@ -27,8 +31,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 		Timeout: 10 * time.Second,
 	}
 
-	// BFS
-	for range maxDepth {
+	for depth := 0; depth < maxDepth; depth++ {
 
 		levelSize := len(queue)
 
@@ -38,7 +41,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				break
 			}
 
-			currentURL := normalizeURL(queue[0])
+			currentURL := queue[0]
 			queue = queue[1:]
 
 			if visited[currentURL] {
@@ -51,11 +54,19 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				continue
 			}
 
+			if resp.StatusCode != http.StatusOK {
+				resp.Body.Close()
+				continue
+			}
+
 			doc, err := goquery.NewDocumentFromReader(resp.Body)
 			resp.Body.Close()
 			if err != nil {
 				continue
 			}
+
+			// Remove useless content
+			doc.Find("script, style, nav, footer").Remove()
 
 			// Extract data
 			title := strings.TrimSpace(doc.Find("title").Text())
@@ -85,6 +96,7 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 
 			// Extract links
 			doc.Find("a").Each(func(i int, s *goquery.Selection) {
+
 				href, exists := s.Attr("href")
 				if !exists {
 					return
@@ -98,11 +110,24 @@ func Crawler(seed string, maxDepth int) ([]*model.Page, error) {
 				base, _ := url.Parse(currentURL)
 				resolved := base.ResolveReference(link)
 
-				if resolved.Host == baseDomain {
-					normalized := normalizeURL(resolved.String())
+				if resolved.Host != baseDomain {
+					return
+				}
+
+				normalized := normalizeURL(resolved.String())
+
+				if len(normalized) > 200 {
+					return
+				}
+
+				if !visited[normalized] && !queued[normalized] {
 					queue = append(queue, normalized)
+					queued[normalized] = true
 				}
 			})
+
+			// Delay
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 
@@ -116,13 +141,14 @@ func normalizeURL(raw string) string {
 		return raw
 	}
 
-	// remove fragment (#section)
 	u.Fragment = ""
+	u.RawQuery = ""
 
-	// remove final /
 	if u.Path == "/" {
 		u.Path = ""
 	}
+
+	u.Host = strings.ToLower(u.Host)
 
 	return u.String()
 }

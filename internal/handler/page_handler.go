@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/Khalilkma/search-engine-golang/internal/service"
+	"github.com/Khalilkma/search-engine-golang/internal/view"
 	"github.com/gin-gonic/gin"
 )
 
@@ -49,15 +50,18 @@ func (h *PageHandler) Search(c *gin.Context) {
 
 	query := c.Query("q")
 	if query == "" {
-		c.JSON(400, gin.H{"error": "query parameter 'q' is required"})
+		c.String(400, "query parameter 'q' is required")
 		return
 	}
 
 	results, err := h.Service.Search(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.String(500, err.Error())
 		return
 	}
 
-	c.JSON(200, results)
+	view.ResultsPage(query, results).Render(
+		c.Request.Context(),
+		c.Writer,
+	)
 }

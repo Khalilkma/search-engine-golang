@@ -11,11 +11,12 @@ import (
 	"github.com/Khalilkma/search-engine-golang/internal/handler"
 	"github.com/Khalilkma/search-engine-golang/internal/repository"
 	"github.com/Khalilkma/search-engine-golang/internal/service"
+	"github.com/Khalilkma/search-engine-golang/internal/view"
 )
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println(" .env file not found")
+		log.Println(".env file not found")
 	}
 
 	db, err := database.Connect()
@@ -33,14 +34,22 @@ func main() {
 
 	r := gin.Default()
 
+	// Static files
+	r.Static("/static", "./static")
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Routes
+	// Home
+	r.GET("/", func(c *gin.Context) {
+		view.SearchPage().Render(c.Request.Context(), c.Writer)
+	})
+
+	// Search
 	r.GET("/search", pageHandler.Search)
 
-	// Crawl routes
+	// Crawl
 	r.POST("/crawl", pageHandler.Crawl)
 
 	port := os.Getenv("PORT")
