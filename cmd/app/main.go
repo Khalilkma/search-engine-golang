@@ -25,6 +25,11 @@ func main() {
 	}
 	defer db.Close()
 
+	err = database.Migrate(db)
+	if err != nil {
+		log.Fatal("Error migrating database:", err)
+	}
+
 	log.Println("Connected to database")
 
 	// Dependency injection
